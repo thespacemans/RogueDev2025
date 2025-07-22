@@ -1,15 +1,21 @@
+"""This file initializes the game and runs the main loop."""
+
 #!/usr/bin/env python
 import tcod
 
 
-# import the two classes we need from actions
-# and the event handler we created before too
+# import the two classes we need from actions.py
+# and the event handler we created in input_handlers.py
 # so we can use those functions here in main
 from actions import EscapeAction, MovementAction
 from input_handlers import EventHandler
 
 
-def main() -> None:  # the arrow and None typing do
+def main() -> None:
+    """Main function to run the game loop."""
+    # "-> None" is a kind of type annotation in python
+    # it is used here because the main() function does not return a value at all
+    # there are also ways to do it within function args
 
     # variables for screen size
     screen_width = 80
@@ -27,7 +33,8 @@ def main() -> None:  # the arrow and None typing do
 
     # this creates an instance of our EventHandler class
     # by creating it, that makes it usable to receive events and process them
-    # because otherwise it's just a class. it doesn't do anything unless instanced and utilized, duh
+    # because otherwise it's just a class sitting in a file
+    # it doesn't do anything unless instanced and utilized in the scope of main()
     event_handler = EventHandler()
 
     # creates the screen, given width and height and a window title
@@ -35,7 +42,7 @@ def main() -> None:  # the arrow and None typing do
         columns=screen_width,
         rows=screen_height,
         tileset=tileset,
-        title="Yet Another Roguelike Tutorial",
+        title="Pylon Delta",
         vsync=True,
     ) as context:
         # creates the console, which is what we draw to
