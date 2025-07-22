@@ -7,8 +7,8 @@ import tcod
 # import the various classes we need from the other files
 from engine import Engine
 from input_handlers import EventHandler
-from game_map import GameMap
 from entity import Entity
+from procgen import generate_dungeon
 
 
 def main() -> None:
@@ -23,6 +23,10 @@ def main() -> None:
 
     map_width = 80
     map_height = 45
+
+    room_max_size = 10
+    room_min_size = 6
+    max_rooms = 30
 
     # telling tcod which font to use, reading from the dejavu tileset in the project folder
     tileset = tcod.tileset.load_tilesheet(
@@ -41,7 +45,16 @@ def main() -> None:
     entities = {npc, player}
 
     # create an instance of the GameMap class for use in the game loop
-    game_map = GameMap(map_width, map_height)
+    # this time using the new generate_dungeon() function we made
+    # now including all the arguments we need to utilize our enhanced procgen function
+    game_map = generate_dungeon(
+        max_rooms=max_rooms,
+        room_min_size=room_min_size,
+        room_max_size=room_max_size,
+        map_width=map_width,
+        map_height=map_height,
+        player=player,
+    )
 
     # utilize an instance of the Engine class to handle event processing
     # and rendering to the game window
