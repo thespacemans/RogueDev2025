@@ -10,9 +10,10 @@ class GameMap:
     # takes width and height integers and assigns them in one line
     def __init__(self, width: int, height: int):
         self.width, self.height = width, height
-        # this line creates a 2D array filled with the same values, in this case the Floor tile
-        # this fills self.tiles with floor tiles
-        self.tiles = np.full((width, height), fill_value=tile_types.floor, order="F")
+        # this line creates a 2D array filled with the same values, in this case the Wall tile
+        # this fills self.tiles with wall tiles
+        # now we can utilize a procedural generator to populate this wall array with walkable rooms
+        self.tiles = np.full((width, height), fill_value=tile_types.wall, order="F")
 
         # this line replaces the floor at certain indices
         # with a small, three-tile wide wall
