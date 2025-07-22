@@ -7,6 +7,7 @@ import tcod
 # import the various classes we need from the other files
 from engine import Engine
 from input_handlers import EventHandler
+from game_map import GameMap
 from entity import Entity
 
 
@@ -19,6 +20,9 @@ def main() -> None:
     # variables for screen size
     screen_width = 80
     screen_height = 50
+
+    map_width = 80
+    map_height = 45
 
     # telling tcod which font to use, reading from the dejavu tileset in the project folder
     tileset = tcod.tileset.load_tilesheet(
@@ -36,9 +40,14 @@ def main() -> None:
     npc = Entity(int(screen_width / 2 - 5), int(screen_height / 2), "@", (255, 255, 0))
     entities = {npc, player}
 
+    # create an instance of the GameMap class for use in the game loop
+    game_map = GameMap(map_width, map_height)
+
     # utilize an instance of the Engine class to handle event processing
     # and rendering to the game window
-    engine = Engine(entities=entities, event_handler=event_handler, player=player)
+    engine = Engine(
+        entities=entities, event_handler=event_handler, game_map=game_map, player=player
+    )
 
     # creates the screen, given width and height and a window title
     with tcod.context.new(
