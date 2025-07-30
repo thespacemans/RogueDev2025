@@ -2,6 +2,7 @@ from typing import Set, Iterable, Any
 
 from tcod.context import Context
 from tcod.console import Console
+from tcod.map import compute_fov
 
 from entity import Entity
 from game_map import GameMap
@@ -25,12 +26,14 @@ class Engine:
         self.event_handler = event_handler
         self.game_map = game_map
         self.player = player
+        self.update_fov()
 
     # some notes:
     # {entities} is a *set* (of entities), which behaves kind of like a list that
     # enforces uniqueness. ergo, we cannot add an Entity to the set twice,
-    # whereas a list would allow that. in this case, having an entity in
-    # {entities} twice does not make sense.
+    # whereas a list would allow that. in this case, having a singular entity in
+    # {entities} twice does not make sense. we need two separate entities to represent
+    # two different enemies, for example
 
     # event_handler is the same event_handler that we used in main.py.
     # player is the player instance of the Entity class.
@@ -53,11 +56,41 @@ class Engine:
             # basically handles inputs! wow!
             action.perform(self, self.player)
 
+            self.update_fov()  # update the FOV before the player's next action
+
+    # sets the game_map's visible tiles to equal the result of compute_fov
+    # give compute_fov three arguments:
+    # transparency, to which we pass the array "self.game_map.tiles["transparent"]"
+    #   this arg takes a 2d array and considers any nonzero values to be transparent
+    # pov, which is the origin of the field of view (just a 2D index, uses player's x-y position)
+    # radius, which is how far the FOV extends in tiles
+    def update_fov(self) -> None:
+        """Recompute the visible area based on player's point of view"""
+        self.game_map.visible[:] = compute_fov(
+            self.game_map.tiles["transparent"], (self.player.x, self.player.y), radius=8
+        )
+        # if a tile is "visible", it should be added to "explored"
+        # the |= operand sets the explored array to include everything in the visible array,
+        # plus whatever it already contained
+        # so any tile the player can see automatically becomes one that has been explored
+        self.game_map.explored |= self.game_map.visible
+
+    # passing a colon as argument (see above) retrieves all the elements of the array
+    # so it runs the function on the visible array
+    # and modifies the elements of it in a certain "location" on that array
+    #   this makes sense if we imagine the array as a 2D map, which is what the game does.
+    #   how about that lmao
+    # the location on that array is defined by the player's location and the radius
+
     def render(self, console: Console, context: Context) -> None:
         """Draws entities and other objects to the game window"""
         self.game_map.render(console)
+
         # iterate through self.entities (which refers to the Engine class's {entities})
         for entity in self.entities:
-            console.print(entity.x, entity.y, entity.char, fg=entity.color)
+            # only print entities in the FOV, hence the IF
+            if self.game_map.visible[entity.x, entity.y]:
+                console.print(entity.x, entity.y, entity.char, fg=entity.color)
+
         context.present(console)
         console.clear()

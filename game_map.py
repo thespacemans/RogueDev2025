@@ -15,10 +15,13 @@ class GameMap:
         # now we can utilize a procedural generator to populate this wall array with walkable rooms
         self.tiles = np.full((width, height), fill_value=tile_types.wall, order="F")
 
-        # this line replaces the floor at certain indices
-        # with a small, three-tile wide wall
-        # this ain't normally hard-coded so WILL REMOVE LATER
-        self.tiles[30:33, 22] = tile_types.wall
+        self.visible = np.full(
+            (width, height), fill_value=False, order="F"
+        )  # array containing the tiles the player can currently see
+        # fill them with value "false" for now
+        self.explored = np.full(
+            (width, height), fill_value=False, order="F"
+        )  # array containing the tiles the player has seen before
 
     # this method will check if given x and y coordinates are within the bounds of the map
     # ensures the player doesn't wander off into the void
@@ -28,7 +31,19 @@ class GameMap:
         return 0 <= x < self.width and 0 <= y < self.height
 
     def render(self, console: Console) -> None:
-        """Using the Console class's tiles_rgb method, render the map to console"""
-        # this is much faster than using the console.print method that is used
-        # for individual entities
-        console.rgb[0 : self.width, 0 : self.height] = self.tiles["dark"]
+        """Renders the map, using Console class's .rgb method"""
+
+        # if a tile is in the "visible" array, draw it with "light" colors
+        # if it isnt, but it exists in the "explored" array, draw it with "dark" colors
+        # otherwise, the default is "SHROUD"
+        console.rgb[0 : self.width, 0 : self.height] = np.select(
+            condlist=[self.visible, self.explored],
+            choicelist=[self.tiles["light"], self.tiles["dark"]],
+            default=tile_types.SHROUD,
+        )
+        # np.select lets us conditionally draw the tiles we want, based on what is specified in
+        # the Condition list (condlist).
+        # it increments through the arrays we have that constitute the map/
+        # if its visible, it uses the first value in choicelist (light)
+        # if it is not visible, but explored, use the second value (dark)
+        # otherwise, use SHROUD, which we define as default
