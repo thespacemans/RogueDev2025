@@ -2,7 +2,7 @@ from typing import Tuple
 
 
 class Entity:
-    """Generic object to represent players, enemies, items, etc."""
+    """Generic object class to represent players, enemies, items, etc."""
 
     def __init__(self, x: int, y: int, char: str, color: Tuple[int, int, int]):
         # notice how the types are hinted next to each argument

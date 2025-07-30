@@ -39,9 +39,9 @@ def main() -> None:
     # it doesn't do anything unless instanced and utilized in the scope of main()
     event_handler = EventHandler()
 
-    # create a player and an NPC entity, place both in a set
+    # create, position, and color a player and an NPC entity, place both in a set
     player = Entity(int(screen_width / 2), int(screen_height / 2), "@", (255, 255, 255))
-    npc = Entity(int(screen_width / 2 - 5), int(screen_height / 2), "@", (255, 255, 0))
+    npc = Entity(int(screen_width / 2 - 5), int(screen_height / 2), "$", (255, 255, 0))
     entities = {npc, player}
 
     # create an instance of the GameMap class for use in the game loop
@@ -56,13 +56,14 @@ def main() -> None:
         player=player,
     )
 
-    # utilize an instance of the Engine class to handle event processing
+    # initialize an instance of the Engine class
+    # this handles event processing
     # and rendering to the game window
     engine = Engine(
         entities=entities, event_handler=event_handler, game_map=game_map, player=player
     )
 
-    # creates the screen, given width and height and a window title
+    # creates the window, given width and height and a window title
     with tcod.context.new(
         columns=screen_width,
         rows=screen_height,
@@ -78,7 +79,9 @@ def main() -> None:
 
         # starts the game loop
         while True:
-            # renders entities and map to the game window
+            # this renders the contents of Engine
+            #   e.g. entities, map, visibility status, etc
+            # to the game windows
             engine.render(console=root_console, context=context)
 
             # catches events as they occur during the game loop
