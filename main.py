@@ -1,18 +1,20 @@
 """This file initializes the game and runs the main loop."""
 
 #!/usr/bin/env python
-import tcod
-
-
 # import the various classes we need from the other files
+from typing import TYPE_CHECKING
+import tcod
 from engine import Engine
-from input_handlers import EventHandler
+from input_handlers import DefaultControlHandler
 from entity import Entity
 from procgen import generate_dungeon
 
+if TYPE_CHECKING:
+    from input_handlers import EventHandler
+
 
 def main() -> None:
-    """Main function to run the game loop."""
+    """Main function to run the game loop"""
     # "-> None" is a kind of type annotation in python
     # it is used here because the main() function does not return a value at all
     # there are also ways to do it within function args
@@ -37,7 +39,7 @@ def main() -> None:
     # by creating it, that makes it usable to receive events and process them
     # because otherwise it's just a class sitting in a file
     # it doesn't do anything unless instanced and utilized in the scope of main()
-    event_handler = EventHandler()
+    event_handler = DefaultControlHandler()
 
     # create, position, and color a player and an NPC entity, place both in a set
     player = Entity(int(screen_width / 2), int(screen_height / 2), "@", (255, 255, 255))

@@ -1,4 +1,4 @@
-from typing import Set, Iterable, Any
+from typing import Set, Iterable, Any, TYPE_CHECKING
 
 from tcod.context import Context
 from tcod.console import Console
@@ -6,7 +6,10 @@ from tcod.map import compute_fov
 
 from entity import Entity
 from game_map import GameMap
-from input_handlers import EventHandler
+from input_handlers import DefaultControlHandler
+
+if TYPE_CHECKING:
+    from input_handlers import EventHandler
 
 
 class Engine:
@@ -18,7 +21,7 @@ class Engine:
     def __init__(
         self,
         entities: Set[Entity],
-        event_handler: EventHandler,
+        event_handler: DefaultControlHandler,
         game_map: GameMap,
         player: Entity,
     ):
@@ -47,7 +50,7 @@ class Engine:
         # here, a keyboard event will be send to the ev_keydown method we wrote
         # that method returns an action and gets assigned to the action variable here
         for event in events:
-            action = self.event_handler.dispatch(event)
+            action = self.event_handler.on_event(event)
 
             if action is None:
                 continue
