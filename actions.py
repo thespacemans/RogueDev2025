@@ -1,4 +1,4 @@
-"""File to initialize action classes for the game."""
+"""Initializes action classes for the game."""
 
 from __future__ import annotations
 

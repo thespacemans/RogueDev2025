@@ -92,5 +92,9 @@ class Engine:
             if self.game_map.visible[entity.x, entity.y]:
                 console.print(entity.x, entity.y, entity.char, fg=entity.color)
 
+        # this part actually outputs the various arrays we've toodled with
+        # to the console window
         context.present(console)
+        # and this just empties the console to be filled with array stuff later
+        # this seems like frame generation and disposal, just for a text-based display
         console.clear()
