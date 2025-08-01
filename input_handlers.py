@@ -1,11 +1,12 @@
-"""File that handles events like user keypresses"""
+"""Module that defines event handling classes."""
+
+from __future__ import annotations
 
 # utilize python's type hinting system here
 # optional denotes something that could be set to None
 from typing import Optional, Protocol
 
 import tcod.event
-
 from actions import Action, EscapeAction, MovementAction
 
 
@@ -13,20 +14,22 @@ from actions import Action, EscapeAction, MovementAction
 # this will let us define other ways to interact with the game later
 # ex: like moving a cursor inside a menu or interface, vs maneuvering around the map
 class EventHandler(Protocol):
-    """Interface definition for all event handlers"""
+    """Interface definition for all event handlers."""
 
-    def on_event(self, event: tcod.event.Event, /) -> Optional[Action]: ...
+    def on_event(self, event: tcod.event.Event, /) -> Optional[Action]:
+        """Generic definition for valid method of class EventHandler."""
 
 
 # this class ducktypes as EventHandler via the protocol
 # this one is specifically for moving the player character in the map space
 class DefaultControlHandler:
-    """Handles events while in the default play space"""
+    """Handles events while inside the default play space."""
 
     def __init__(self):
         pass
 
     def on_event(self, event: tcod.event.Event, /) -> Optional[Action]:
+        """Intercepts events and routes them to relevant methods."""
         match event:
             case tcod.event.Quit():
                 raise SystemExit()
@@ -36,6 +39,7 @@ class DefaultControlHandler:
                 pass
 
     def handle_key(self, sym: tcod.event.KeySym, /) -> Optional[Action]:
+        """Accepts keypress events and outputs the related action."""
         action: Optional[Action] = None
 
         match sym:

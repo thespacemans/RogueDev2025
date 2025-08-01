@@ -1,16 +1,12 @@
-"""This file initializes the game and runs the main loop."""
+"""Module that initializes the game and runs the main loop."""
 
 #!/usr/bin/env python
 # import the various classes we need from the other files
-from typing import TYPE_CHECKING
 import tcod
 from engine import Engine
 from input_handlers import DefaultControlHandler
 from entity import Entity
 from procgen import generate_dungeon
-
-if TYPE_CHECKING:
-    from input_handlers import EventHandler
 
 
 def main() -> None:

@@ -1,3 +1,5 @@
+"""Module for defining game entities."""
+
 from typing import Tuple
 
 

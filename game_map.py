@@ -1,3 +1,5 @@
+"""Module that defines class GameMap."""
+
 import numpy as np  # type: ignore
 from tcod.console import Console
 
