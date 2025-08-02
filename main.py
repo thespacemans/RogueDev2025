@@ -39,8 +39,6 @@ def main() -> None:
 
     # create, position, and color a player and an NPC entity, place both in a set
     player = Entity(int(screen_width / 2), int(screen_height / 2), "@", (255, 255, 255))
-    npc = Entity(int(screen_width / 2 - 5), int(screen_height / 2), "$", (255, 255, 0))
-    entities = {npc, player}
 
     # create an instance of the GameMap class for use in the game loop
     # this time using the new generate_dungeon() function we made
@@ -57,9 +55,7 @@ def main() -> None:
     # initialize an instance of the Engine class
     # this handles event processing
     # and rendering to the game window
-    engine = Engine(
-        entities=entities, event_handler=event_handler, game_map=game_map, player=player
-    )
+    engine = Engine(event_handler=event_handler, game_map=game_map, player=player)
 
     # creates the window, given width and height and a window title
     with tcod.context.new(

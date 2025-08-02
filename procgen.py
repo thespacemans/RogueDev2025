@@ -98,7 +98,7 @@ def generate_dungeon(
 ) -> GameMap:
     """Generate a new dungeon map"""
     # initialize a gamemap called dungeon with specified indices
-    dungeon = GameMap(map_width, map_height)
+    dungeon = GameMap(map_width, map_height, entities=[player])
 
     # keep a running list of all the rooms
     rooms: List[RectangularRoom] = []

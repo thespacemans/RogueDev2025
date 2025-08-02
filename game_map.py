@@ -1,17 +1,25 @@
 """Module that defines class GameMap."""
 
+from __future__ import annotations
+
+from typing import Iterable, TYPE_CHECKING
+
 import numpy as np  # type: ignore
 from tcod.console import Console
 
 import tile_types
 
+if TYPE_CHECKING:
+    from entity import Entity
+
 
 class GameMap:
     """Class that defines the game map, which is a 2D array of tiles of specified types"""
 
-    # takes width and height integers and assigns them in one line
-    def __init__(self, width: int, height: int):
+    # accepts width, height, and the array of game entities
+    def __init__(self, width: int, height: int, entities: Iterable[Entity] = ()):
         self.width, self.height = width, height
+        self.entities = set(entities)
         # this line creates a 2D array filled with the same values, in this case the Wall tile
         # this fills self.tiles with wall tiles
         # now we can utilize a procedural generator to populate this wall array with walkable rooms
@@ -49,3 +57,9 @@ class GameMap:
         # if its visible, it uses the first value in choicelist (light)
         # if it is not visible, but explored, use the second value (dark)
         # otherwise, use SHROUD, which we define as default
+
+        # iterate through self.entities (which refers to the Engine class's {entities})
+        for entity in self.entities:
+            # only print entities in the FOV, hence the IF
+            if self.visible[entity.x, entity.y]:
+                console.print(entity.x, entity.y, entity.char, fg=entity.color)

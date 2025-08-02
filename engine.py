@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Set, Iterable, Any, TYPE_CHECKING
+from typing import Iterable, Any, TYPE_CHECKING
 from tcod.map import compute_fov
 
 if TYPE_CHECKING:
@@ -21,12 +21,10 @@ class Engine:
 
     def __init__(
         self,
-        entities: Set[Entity],
         event_handler: EventHandler,
         game_map: GameMap,
         player: Entity,
     ):
-        self.entities = entities
         self.event_handler = event_handler
         self.game_map = game_map
         self.player = player
@@ -89,12 +87,6 @@ class Engine:
     def render(self, console: Console, context: Context) -> None:
         """Draws the game map, entities, and more to the game window."""
         self.game_map.render(console)
-
-        # iterate through self.entities (which refers to the Engine class's {entities})
-        for entity in self.entities:
-            # only print entities in the FOV, hence the IF
-            if self.game_map.visible[entity.x, entity.y]:
-                console.print(entity.x, entity.y, entity.char, fg=entity.color)
 
         # this part actually outputs the various arrays we've toodled with
         # to the console window
