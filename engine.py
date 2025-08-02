@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Set, Iterable, Any, TYPE_CHECKING
+from typing import Iterable, Any, TYPE_CHECKING
 from tcod.map import compute_fov
 
 if TYPE_CHECKING:
@@ -14,19 +14,20 @@ if TYPE_CHECKING:
 
 
 class Engine:
-    """Class that deals with computing, rendering, and event handling."""
+    """Class that deals with computing, rendering, and event handling.
+
+    Init takes objects of type `EventHandler`, `GameMap`, and `Entity`.
+    """
 
     # upon initialization, represents the game's state
     # and is utilized and modified on each game loop iteration
 
     def __init__(
         self,
-        entities: Set[Entity],
         event_handler: EventHandler,
         game_map: GameMap,
         player: Entity,
     ):
-        self.entities = entities
         self.event_handler = event_handler
         self.game_map = game_map
         self.player = player
@@ -44,6 +45,11 @@ class Engine:
     # having a separate reference to it is handy cause we need to access it
     # more often than any other random entity
 
+    def handle_enemy_turns(self) -> None:
+        """Handles the turns of all entities, except the `player`."""
+        for entity in self.game_map.entities - {self.player}:
+            print(f"The {entity.name} wonders when it will get to take a real turn.")
+
     def handle_events(self, events: Iterable[Any]) -> None:
         """Handles user-input events, such as keypresses."""
         # send the event to the event_handler's "dispatch" method,
@@ -59,7 +65,7 @@ class Engine:
             # takes the place of unwieldy if statements
             # basically handles inputs! wow!
             action.perform(self, self.player)
-
+            self.handle_enemy_turns()
             self.update_fov()  # update the FOV before the player's next action
 
     # sets the game_map's visible tiles to equal the result of compute_fov
@@ -89,12 +95,6 @@ class Engine:
     def render(self, console: Console, context: Context) -> None:
         """Draws the game map, entities, and more to the game window."""
         self.game_map.render(console)
-
-        # iterate through self.entities (which refers to the Engine class's {entities})
-        for entity in self.entities:
-            # only print entities in the FOV, hence the IF
-            if self.game_map.visible[entity.x, entity.y]:
-                console.print(entity.x, entity.y, entity.char, fg=entity.color)
 
         # this part actually outputs the various arrays we've toodled with
         # to the console window
