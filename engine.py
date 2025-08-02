@@ -45,6 +45,11 @@ class Engine:
     # having a separate reference to it is handy cause we need to access it
     # more often than any other random entity
 
+    def handle_enemy_turns(self) -> None:
+        """Handles the turns of all entities, except the `player`."""
+        for entity in self.game_map.entities - {self.player}:
+            print(f"The {entity.name} wonders when it will get to take a real turn.")
+
     def handle_events(self, events: Iterable[Any]) -> None:
         """Handles user-input events, such as keypresses."""
         # send the event to the event_handler's "dispatch" method,
@@ -60,7 +65,7 @@ class Engine:
             # takes the place of unwieldy if statements
             # basically handles inputs! wow!
             action.perform(self, self.player)
-
+            self.handle_enemy_turns()
             self.update_fov()  # update the FOV before the player's next action
 
     # sets the game_map's visible tiles to equal the result of compute_fov
