@@ -1,11 +1,13 @@
 """Module that initializes the game and runs the main loop."""
 
 #!/usr/bin/env python
-# import the various classes we need from the other files
+
+import copy
+
 import tcod
 from engine import Engine
+import entity_factories
 from input_handlers import DefaultControlHandler
-from entity import Entity
 from procgen import generate_dungeon
 
 
@@ -26,6 +28,8 @@ def main() -> None:
     room_min_size = 6
     max_rooms = 30
 
+    max_monsters_per_room = 2
+
     # telling tcod which font to use, reading from the dejavu tileset in the project folder
     tileset = tcod.tileset.load_tilesheet(
         "dejavu10x10_gs_tc.png", 32, 8, tcod.tileset.CHARMAP_TCOD
@@ -37,8 +41,10 @@ def main() -> None:
     # it doesn't do anything unless instanced and utilized in the scope of main()
     event_handler = DefaultControlHandler()
 
-    # create, position, and color a player and an NPC entity, place both in a set
-    player = Entity(int(screen_width / 2), int(screen_height / 2), "@", (255, 255, 255))
+    # clone a player as defined in entity_factories
+    # note that we can't use player.spawn() here because spawn requires the GameMap
+    # which isn't created until after we create the player
+    player = copy.deepcopy(entity_factories.player)
 
     # create an instance of the GameMap class for use in the game loop
     # this time using the new generate_dungeon() function we made
@@ -49,6 +55,7 @@ def main() -> None:
         room_max_size=room_max_size,
         map_width=map_width,
         map_height=map_height,
+        max_monsters_per_room=max_monsters_per_room,
         player=player,
     )
 

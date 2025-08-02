@@ -1,3 +1,5 @@
+"""Module that procedurally generates dungeons."""
+
 from __future__ import annotations
 
 import random
@@ -5,6 +7,7 @@ from typing import Iterator, List, Tuple, TYPE_CHECKING
 
 import tcod
 
+import entity_factories
 from game_map import GameMap
 import tile_types
 
@@ -13,6 +16,8 @@ if TYPE_CHECKING:
 
 
 class RectangularRoom:
+    """Defines properties and methods for a single rectangular room."""
+
     def __init__(self, x: int, y: int, width: int, height: int):
         # takes the x and y coordinates of the top left corner, and
         # computes the bottom right based on width and height params
@@ -25,6 +30,7 @@ class RectangularRoom:
     # this one describes the x and y coordinates of the center of a room
     @property
     def center(self) -> Tuple[int, int]:
+        """Returns the x-y coordinates of the center of a room"""
         center_x = int((self.x1 + self.x2) / 2)
         center_y = int((self.y1 + self.y2) / 2)
 
@@ -35,13 +41,13 @@ class RectangularRoom:
     # so this gives us an easy way to get the area we need to carve out
     @property
     def inner(self) -> Tuple[slice, slice]:
-        """Return the inner area of this room as a 2D array index"""
+        """Returns the inside area of a room as 2D array indices."""
         return slice(self.x1 + 1, self.x2), slice(self.y1 + 1, self.y2)
         # the +1 ensures there's always at least one tile of wall between two rooms
         # it does this by basically resizing each room to be one tile smaller on each axis
 
     def intersects(self, other: RectangularRoom) -> bool:
-        """Return true if this room overlaps with another rectangular room"""
+        """Returns true if this room overlaps with another rectangular room."""
         return (
             self.x1 <= other.x2
             and self.x2 >= other.x1
@@ -50,13 +56,30 @@ class RectangularRoom:
         )
 
 
+def place_entities(
+    room: RectangularRoom, dungeon: GameMap, maximum_monsters: int
+) -> None:
+    """Places entities inside individual rooms"""
+    number_of_monsters = random.randint(0, maximum_monsters)
+
+    for i in range(number_of_monsters):
+        x = random.randint(room.x1 + 1, room.x2 - 1)
+        y = random.randint(room.y1 + 1, room.y2 - 1)
+
+        if not any(entity.x == x and entity.y == y for entity in dungeon.entities):
+            if random.random() < 0.8:
+                entity_factories.orc.spawn(dungeon, x, y)
+            else:
+                entity_factories.troll.spawn(dungeon, x, y)
+
+
 # function takes two arguments, both tuples of two integers
 # returns iterator of a tuple of two integers
 # all the tuples are x and y coords on the map
 def tunnel_between(
     start: Tuple[int, int], end: Tuple[int, int]
 ) -> Iterator[Tuple[int, int]]:
-    """Return an L-shaped tunnel between two given points"""
+    """Returns an L-shaped tunnel between two given points."""
 
     # get the coords out of the tuples
     x1, y1 = start
@@ -94,9 +117,10 @@ def generate_dungeon(
     room_max_size: int,
     map_width: int,
     map_height: int,
+    max_monsters_per_room: int,
     player: Entity,
 ) -> GameMap:
-    """Generate a new dungeon map"""
+    """Generates a new dungeon map."""
     # initialize a gamemap called dungeon with specified indices
     dungeon = GameMap(map_width, map_height, entities=[player])
 
@@ -137,6 +161,8 @@ def generate_dungeon(
             # the tunnel_between function
             for x, y in tunnel_between(rooms[-1].center, new_room.center):
                 dungeon.tiles[x, y] = tile_types.floor
+
+        place_entities(new_room, dungeon, max_monsters_per_room)
 
         # finally, append the new room to the list
         # so the next iteration can use it
