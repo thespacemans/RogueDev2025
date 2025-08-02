@@ -16,7 +16,10 @@ if TYPE_CHECKING:
 
 
 class RectangularRoom:
-    """Defines properties and methods for a single rectangular room."""
+    """Defines properties and methods for a single rectangular room.
+
+    Init takes arguments of `x` and `y` coordinates, as well as `width` and `height` of the room.
+    """
 
     def __init__(self, x: int, y: int, width: int, height: int):
         # takes the x and y coordinates of the top left corner, and
@@ -30,7 +33,7 @@ class RectangularRoom:
     # this one describes the x and y coordinates of the center of a room
     @property
     def center(self) -> Tuple[int, int]:
-        """Returns the x-y coordinates of the center of a room"""
+        """Returns the x-y coordinates of the center of a room."""
         center_x = int((self.x1 + self.x2) / 2)
         center_y = int((self.y1 + self.y2) / 2)
 
@@ -62,7 +65,8 @@ def place_entities(
     """Places entities inside individual rooms"""
     number_of_monsters = random.randint(0, maximum_monsters)
 
-    for i in range(number_of_monsters):
+    # the _ means a variable that is intentionally ignored (ex: only used as a for-loop index)
+    for _ in range(number_of_monsters):
         x = random.randint(room.x1 + 1, room.x2 - 1)
         y = random.randint(room.y1 + 1, room.y2 - 1)
 
@@ -130,7 +134,7 @@ def generate_dungeon(
     # iterate from 0 to max_rooms - 1
     # the algorithm may or may not place a room pending intersection status
     # so we don't know how many rooms we'll end up with
-    for r in range(max_rooms):
+    for _ in range(max_rooms):
 
         # set the room's dimensions randomly within the provided ranges
         room_width = random.randint(room_min_size, room_max_size)

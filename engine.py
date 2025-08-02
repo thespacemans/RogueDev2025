@@ -14,7 +14,10 @@ if TYPE_CHECKING:
 
 
 class Engine:
-    """Class that deals with computing, rendering, and event handling."""
+    """Class that deals with computing, rendering, and event handling.
+
+    Init takes objects of type `EventHandler`, `GameMap`, and `Entity`.
+    """
 
     # upon initialization, represents the game's state
     # and is utilized and modified on each game loop iteration

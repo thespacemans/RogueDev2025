@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Iterable, TYPE_CHECKING
+from typing import Iterable, Optional, TYPE_CHECKING
 
 import numpy as np  # type: ignore
 from tcod.console import Console
@@ -14,7 +14,10 @@ if TYPE_CHECKING:
 
 
 class GameMap:
-    """Class that defines the game map, which is a 2D array of tiles of specified types"""
+    """Class that defines the game map, which is a 2D array of tiles of specified types.
+
+    Init takes `width`, `height`, and a set of class `Entity`.
+    """
 
     # accepts width, height, and the array of game entities
     def __init__(self, width: int, height: int, entities: Iterable[Entity] = ()):
@@ -32,6 +35,22 @@ class GameMap:
         self.explored = np.full(
             (width, height), fill_value=False, order="F"
         )  # array containing the tiles the player has seen before
+
+    # this function iterates through all entities, and if one is found that both blocks movement,
+    # AND occupies the given location_x and _y, then it returns that Entity
+    def get_blocking_entity_at_location(
+        self, location_x: int, location_y: int
+    ) -> Optional[Entity]:
+        """Returns a blocking entity that may exist at a given location."""
+        for entity in self.entities:
+            if (
+                entity.blocks_movement
+                and entity.x == location_x
+                and entity.y == location_y
+            ):
+                return entity
+
+        return None
 
     # this method will check if given x and y coordinates are within the bounds of the map
     # ensures the player doesn't wander off into the void
