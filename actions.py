@@ -2,47 +2,92 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import Optional, Tuple, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from engine import Engine
     from entity import Entity
 
 
+# in hindsight, changing this file so drastically to use Protocols was a brave choice.
+# have since reverted to the tutorial baseline, so that this refactor in part 6 is
+# even a little bit achievable for my skill level and knowledge
+
+
 class Action:
-    def perform(self, engine: Engine, entity: Entity) -> None:
+    """Base class for action types."""
+
+    # its okay to call super() here even if Action has no parent because
+    # we never call a plain Action() class anywhere in the code
+    # so that super is only used by the subclasses that inherit it
+    # and it eventually refers to THIS VERY CLASS
+    def __init__(self, entity: Entity) -> None:
+        super().__init__()
+        self.entity = entity
+
+    @property
+    def engine(self) -> Engine:
+        """Returns the `engine` object that this `action` belongs to."""
+        return self.entity.gamemap.engine
+
+    def perform(self) -> None:
         """Perform this action with the objects needed to determine its scope.
 
-        `engine` is the scope this action is being performed in.
+        `self.engine` is the scope this action is being performed in.
 
-        `entity` is the object performing the action.
+        `self.entity` is the object performing the action.
 
         This method must be overridden by Action subclasses.
         """
         raise NotImplementedError()
 
 
+# recall that subclasses inherit the methods of the parent class
+# and because we didn't overwrite init, it uses the parent's init
+# and so it has access to those instance-specific attributes just by being a subclass
 class EscapeAction(Action):
-    def perform(self, engine: Engine, entity: Entity) -> None:
+    """Subclass of `Action` that allows us to close the game."""
+
+    def perform(self) -> None:
         raise SystemExit()
 
 
 class ActionWithDirection(Action):
-    def __init__(self, dx: int, dy: int):
-        super().__init__()
+    """Subclass of `Action` that contains that action's desired direction in x-y space."""
+
+    def __init__(self, entity: Entity, dx: int, dy: int):
+        super().__init__(entity)
 
         self.dx = dx
         self.dy = dy
 
-    def perform(self, engine: Engine, entity: Entity) -> None:
+    # @property lets you define a method that can be ACCESSED like an ATTRIBUTE
+    # you can access the result of that method just by using dot notation,
+    # no need to call it as a function
+    # e.g.: self.dest_xy returns a pair of x-y values in a tuple
+    # useful for creating read-only or computed attributes
+    @property
+    def dest_xy(self) -> Tuple[int, int]:
+        """Returns this `Action`'s destination."""
+        return self.entity.x + self.dx, self.entity.y + self.dy
+
+    @property
+    def blocking_entity(self) -> Optional[Entity]:
+        """Return the blocking `Entity` at this `Action`'s destination."""
+        return self.engine.game_map.get_blocking_entity_at_location(*self.dest_xy)
+        # recall that the * is the unpacking operator
+        # it lets you turn iterables into a series of positional arguments
+        # way better than using for loops or whatever else to iterate the contents of an array
+
+    def perform(self) -> None:
         raise NotImplementedError()
 
 
 class MeleeAction(ActionWithDirection):
-    def perform(self, engine: Engine, entity: Entity) -> None:
-        dest_x = entity.x + self.dx
-        dest_y = entity.y + self.dy
-        target = engine.game_map.get_blocking_entity_at_location(dest_x, dest_y)
+    """Subclass of `ActionWithDirection` that attempts a melee attack on a blocking entity."""
+
+    def perform(self) -> None:
+        target = self.blocking_entity
         if not target:
             return  # No entity to attack.
 
@@ -50,27 +95,24 @@ class MeleeAction(ActionWithDirection):
 
 
 class MovementAction(ActionWithDirection):
-    def perform(self, engine: Engine, entity: Entity) -> None:
-        dest_x = entity.x + self.dx
-        dest_y = entity.y + self.dy
+    def perform(self) -> None:
+        dest_x, dest_y = self.dest_xy
 
-        if not engine.game_map.in_bounds(dest_x, dest_y):
+        if not self.engine.game_map.in_bounds(dest_x, dest_y):
             return  # Destination is out of bounds.
-        if not engine.game_map.tiles["walkable"][dest_x, dest_y]:
+        if not self.engine.game_map.tiles["walkable"][dest_x, dest_y]:
             return  # Destination is blocked by a tile.
-        if engine.game_map.get_blocking_entity_at_location(dest_x, dest_y):
+        if self.engine.game_map.get_blocking_entity_at_location(dest_x, dest_y):
             return  # Destination is blocked by an entity.
 
-        entity.move(self.dx, self.dy)
+        # if none of the above breaks us out of the function, finally move the entity
+        self.entity.move(self.dx, self.dy)
 
 
 class BumpAction(ActionWithDirection):
-    def perform(self, engine: Engine, entity: Entity) -> None:
-        dest_x = entity.x + self.dx
-        dest_y = entity.y + self.dy
-
-        if engine.game_map.get_blocking_entity_at_location(dest_x, dest_y):
-            return MeleeAction(self.dx, self.dy).perform(engine, entity)
+    def perform(self) -> None:
+        if self.blocking_entity:
+            return MeleeAction(self.entity, self.dx, self.dy).perform()
 
         else:
-            return MovementAction(self.dx, self.dy).perform(engine, entity)
+            return MovementAction(self.entity, self.dx, self.dy).perform()

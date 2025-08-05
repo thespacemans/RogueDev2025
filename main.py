@@ -3,11 +3,10 @@
 #!/usr/bin/env python
 
 import copy
-
 import tcod
+
 from engine import Engine
 import entity_factories
-from input_handlers import DefaultControlHandler
 from procgen import generate_dungeon
 
 
@@ -35,34 +34,28 @@ def main() -> None:
         "dejavu10x10_gs_tc.png", 32, 8, tcod.tileset.CHARMAP_TCOD
     )
 
-    # this creates an instance of our EventHandler class
-    # by creating it, that makes it usable to receive events and process them
-    # because otherwise it's just a class sitting in a file
-    # it doesn't do anything unless instanced and utilized in the scope of main()
-    event_handler = DefaultControlHandler()
-
     # clone a player as defined in entity_factories
     # note that we can't use player.spawn() here because spawn requires the GameMap
     # which isn't created until after we create the player
     player = copy.deepcopy(entity_factories.player)
 
+    # initialize an instance of the Engine class
+    # this handles event processing and rendering to the game window
+    engine = Engine(player=player)
+
     # create an instance of the GameMap class for use in the game loop
     # this time using the new generate_dungeon() function we made
     # now including all the arguments we need to utilize our enhanced procgen function
-    game_map = generate_dungeon(
+    engine.game_map = generate_dungeon(
         max_rooms=max_rooms,
         room_min_size=room_min_size,
         room_max_size=room_max_size,
         map_width=map_width,
         map_height=map_height,
         max_monsters_per_room=max_monsters_per_room,
-        player=player,
+        engine=engine,
     )
-
-    # initialize an instance of the Engine class
-    # this handles event processing
-    # and rendering to the game window
-    engine = Engine(event_handler=event_handler, game_map=game_map, player=player)
+    engine.update_fov()
 
     # creates the window, given width and height and a window title
     with tcod.context.new(
@@ -85,11 +78,8 @@ def main() -> None:
             # to the game windows
             engine.render(console=root_console, context=context)
 
-            # catches events as they occur during the game loop
-            events = tcod.event.wait()
-
-            # handles those events (wow! fancy that!)
-            engine.handle_events(events)
+            # and this handles events as they arise
+            engine.event_handler.handle_events()
 
 
 # boilerplate code to prevent main from being run unless we specifically invoke it from main

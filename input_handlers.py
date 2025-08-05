@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
-# utilize python's type hinting system here
-# optional denotes something that could be set to None
-from typing import Optional, Protocol
+from typing import Optional, Protocol, TYPE_CHECKING
 
 import tcod.event
-from actions import Action, EscapeAction, BumpAction
+from actions import Action, BumpAction, EscapeAction
+
+if TYPE_CHECKING:
+    from engine import Engine
 
 
 # create EventHandler as a Protocol
@@ -16,8 +17,14 @@ from actions import Action, EscapeAction, BumpAction
 class EventHandler(Protocol):
     """Generic interface definition for all event handlers."""
 
+    def __init__(self, engine: Engine):
+        pass
+
     def on_event(self, event: tcod.event.Event, /) -> Optional[Action]:
         """Generic definition for the `on_event` method of protocol `EventHandler`."""
+
+    def handle_events(self):
+        """Generic definition for `handle_events` method of protocol `EventHandler`."""
 
 
 # this class ducktypes as EventHandler via the protocol
@@ -25,11 +32,11 @@ class EventHandler(Protocol):
 class DefaultControlHandler:
     """Handles events while inside the default play space."""
 
-    def __init__(self):
-        pass
+    def __init__(self, engine: Engine):
+        self.engine = engine
 
     def on_event(self, event: tcod.event.Event, /) -> Optional[Action]:
-        """Intercepts events and routes them to relevant methods."""
+        """Accepts events and routes them to relevant methods."""
         match event:
             case tcod.event.Quit():
                 raise SystemExit()
@@ -40,18 +47,32 @@ class DefaultControlHandler:
 
     def handle_key(self, sym: tcod.event.KeySym, /) -> Optional[Action]:
         """Accepts keypress events and outputs the related action."""
+
         action: Optional[Action] = None
+        player = self.engine.player
 
         match sym:
             case tcod.event.KeySym.UP:
-                action = BumpAction(dx=0, dy=-1)
+                action = BumpAction(player, dx=0, dy=-1)
             case tcod.event.KeySym.DOWN:
-                action = BumpAction(dx=0, dy=1)
+                action = BumpAction(player, dx=0, dy=1)
             case tcod.event.KeySym.LEFT:
-                action = BumpAction(dx=-1, dy=0)
+                action = BumpAction(player, dx=-1, dy=0)
             case tcod.event.KeySym.RIGHT:
-                action = BumpAction(dx=1, dy=0)
+                action = BumpAction(player, dx=1, dy=0)
             case tcod.event.KeySym.ESCAPE:
-                action = EscapeAction()
+                action = EscapeAction(player)
 
         return action
+
+    def handle_events(self) -> None:
+        for event in tcod.event.wait():
+            action = self.on_event(event)
+
+            if action is None:
+                continue
+
+            action.perform()
+
+            self.engine.handle_enemy_turns()
+            self.engine.update_fov()  # Update the FOV before the players next action.

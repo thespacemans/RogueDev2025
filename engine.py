@@ -2,71 +2,39 @@
 
 from __future__ import annotations
 
-from typing import Iterable, Any, TYPE_CHECKING
+from typing import TYPE_CHECKING
+
+from tcod.context import Context
+from tcod.console import Console
 from tcod.map import compute_fov
 
+from input_handlers import DefaultControlHandler
+
 if TYPE_CHECKING:
+    from input_handlers import EventHandler
     from entity import Entity
     from game_map import GameMap
-    from input_handlers import EventHandler
-    from tcod.context import Context
-    from tcod.console import Console
 
 
 class Engine:
     """Class that deals with computing, rendering, and event handling.
 
-    Init takes objects of type `EventHandler`, `GameMap`, and `Entity`.
+    Init takes object of type `Entity`, the player.
     """
 
-    # upon initialization, represents the game's state
-    # and is utilized and modified on each game loop iteration
+    game_map: GameMap
 
-    def __init__(
-        self,
-        event_handler: EventHandler,
-        game_map: GameMap,
-        player: Entity,
-    ):
-        self.event_handler = event_handler
-        self.game_map = game_map
+    # upon initialization, this engine object represents the game's state
+    # and it is utilized and modified on each game loop iteration
+    # for the default state we use the default control handler
+    def __init__(self, player: Entity):
+        self.event_handler: EventHandler = DefaultControlHandler(self)
         self.player = player
-        self.update_fov()
-
-    # some notes:
-    # {entities} is a `set` (of entities), which behaves kind of like a list that
-    # enforces uniqueness. ergo, we cannot add an Entity to the set twice,
-    # whereas a list would allow that. in this case, having a singular entity in
-    # {entities} twice does not make sense. we need two separate entities to represent
-    # two different enemies, for example
-
-    # event_handler is the same event_handler that we used in main.py.
-    # player is the player instance of the Entity class.
-    # having a separate reference to it is handy cause we need to access it
-    # more often than any other random entity
 
     def handle_enemy_turns(self) -> None:
         """Handles the turns of all entities, except the `player`."""
         for entity in self.game_map.entities - {self.player}:
             print(f"The {entity.name} wonders when it will get to take a real turn.")
-
-    def handle_events(self, events: Iterable[Any]) -> None:
-        """Handles user-input events, such as keypresses."""
-        # send the event to the event_handler's "dispatch" method,
-        # which sends the event to the proper place
-        # here, a keyboard event will be send to the ev_keydown method we wrote
-        # that method returns an action and gets assigned to the action variable here
-        for event in events:
-            action = self.event_handler.on_event(event)
-
-            if action is None:
-                continue
-
-            # takes the place of unwieldy if statements
-            # basically handles inputs! wow!
-            action.perform(self, self.player)
-            self.handle_enemy_turns()
-            self.update_fov()  # update the FOV before the player's next action
 
     # sets the game_map's visible tiles to equal the result of compute_fov
     # give compute_fov three arguments:
