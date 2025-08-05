@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-from typing import Iterable, Optional, TYPE_CHECKING
+from typing import Iterable, Iterator, Optional, TYPE_CHECKING
 
 import numpy as np  # type: ignore
 from tcod.console import Console
 
+from entity import Actor
 import tile_types
 
 if TYPE_CHECKING:
@@ -20,7 +21,7 @@ class GameMap:
     Init takes `width`, `height`, and a set of class `Entity`.
     """
 
-    # accepts width, height, and the array of game entities
+    # accepts width, height, the game engine, and any iterable of game entities
     def __init__(
         self,
         engine: Engine,
@@ -44,6 +45,16 @@ class GameMap:
         # array containing the tiles the player has seen before
         self.explored = np.full((width, height), fill_value=False, order="F")
 
+    @property
+    def actors(self) -> Iterator[Actor]:
+        """Iterate over this map's living actors."""
+        # returns all living entities on the map if they are "alive"
+        yield from (
+            entity
+            for entity in self.entities
+            if isinstance(entity, Actor) and entity.is_alive
+        )
+
     # this function iterates through all entities, and if one is found that both blocks movement,
     # AND occupies the given location_x and _y, then it returns that Entity
     def get_blocking_entity_at_location(
@@ -61,6 +72,14 @@ class GameMap:
                 return entity
 
         # if none of the above conditions are true, return None
+        return None
+
+    # functions like get_blocking_entity_at_location, but returns only an actor
+    def get_actor_at_location(self, x: int, y: int) -> Optional[Actor]:
+        for actor in self.actors:
+            if actor.x == x and actor.y == y:
+                return actor
+
         return None
 
     # this method will check if given x and y coordinates are within the bounds of the map
@@ -90,8 +109,20 @@ class GameMap:
         # if it is not visible, but explored, use the second value (dark)
         # otherwise, use SHROUD, which we define as the default or fallback option
 
+        # the sorted function takes two arguments: the collection to sort, and the function to sort it
+        # by using key in sorted, we're defining a custom way to sort the self.entities:
+        #   in this case, we're using a lambda function to tell sorted to sort by value of render order
+        # since the renderorder enum defines its order from 1 (Corpse, lowest) to 3 (Actor, highest),
+        # corpses should be sent to the front of the sorted list. so that way they're
+        # rendered first and then drawn over
+        entities_sorted_for_rendering = sorted(
+            self.entities, key=lambda x: x.render_order.value
+        )
+        # lambda is like a function that's limited to one line, one that we don't need to write
+        # a formal definition for
+
         # iterate through self.entities (which refers to the Engine class's {entities})
-        for entity in self.entities:
+        for entity in entities_sorted_for_rendering:
             # only print entities in the FOV, hence the IF
             if self.visible[entity.x, entity.y]:
-                console.print(entity.x, entity.y, entity.char, fg=entity.color)
+                console.print(x=entity.x, y=entity.y, text=entity.char, fg=entity.color)

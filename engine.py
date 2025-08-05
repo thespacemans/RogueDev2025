@@ -12,7 +12,7 @@ from input_handlers import DefaultControlHandler
 
 if TYPE_CHECKING:
     from input_handlers import EventHandler
-    from entity import Entity
+    from entity import Actor
     from game_map import GameMap
 
 
@@ -27,14 +27,16 @@ class Engine:
     # upon initialization, this engine object represents the game's state
     # and it is utilized and modified on each game loop iteration
     # for the default state we use the default control handler
-    def __init__(self, player: Entity):
+    def __init__(self, player: Actor):
         self.event_handler: EventHandler = DefaultControlHandler(self)
         self.player = player
 
     def handle_enemy_turns(self) -> None:
         """Handles the turns of all entities, except the `player`."""
-        for entity in self.game_map.entities - {self.player}:
-            print(f"The {entity.name} wonders when it will get to take a real turn.")
+
+        for entity in set(self.game_map.actors) - {self.player}:
+            if entity.ai:
+                entity.ai.perform()
 
     # sets the game_map's visible tiles to equal the result of compute_fov
     # give compute_fov three arguments:
@@ -63,6 +65,12 @@ class Engine:
     def render(self, console: Console, context: Context) -> None:
         """Draws the game map, entities, and more to the game window."""
         self.game_map.render(console)
+
+        console.print(
+            x=1,
+            y=47,
+            text=f"HP: {self.player.fighter.hp}/{self.player.fighter.max_hp}",
+        )
 
         # this part actually outputs the various arrays we've toodled with
         # to the console window
