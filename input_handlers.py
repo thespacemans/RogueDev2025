@@ -14,10 +14,10 @@ from actions import Action, EscapeAction, BumpAction
 # this will let us define other ways to interact with the game later
 # ex: like moving a cursor inside a menu or interface, vs maneuvering around the map
 class EventHandler(Protocol):
-    """Interface definition for all event handlers."""
+    """Generic interface definition for all event handlers."""
 
     def on_event(self, event: tcod.event.Event, /) -> Optional[Action]:
-        """Generic definition for valid method of class EventHandler."""
+        """Generic definition for the `on_event` method of protocol `EventHandler`."""
 
 
 # this class ducktypes as EventHandler via the protocol
