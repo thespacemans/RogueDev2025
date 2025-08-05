@@ -2,14 +2,16 @@
 
 from __future__ import annotations
 
-from typing import Iterable, Optional, TYPE_CHECKING
+from typing import Iterable, Iterator, Optional, TYPE_CHECKING
 
 import numpy as np  # type: ignore
 from tcod.console import Console
 
+from entity import Actor
 import tile_types
 
 if TYPE_CHECKING:
+    from engine import Engine
     from entity import Entity
 
 
@@ -19,29 +21,48 @@ class GameMap:
     Init takes `width`, `height`, and a set of class `Entity`.
     """
 
-    # accepts width, height, and the array of game entities
-    def __init__(self, width: int, height: int, entities: Iterable[Entity] = ()):
+    # accepts width, height, the game engine, and any iterable of game entities
+    def __init__(
+        self,
+        engine: Engine,
+        width: int,
+        height: int,
+        entities: Iterable[Entity] = (),
+    ):
+        self.engine = engine
         self.width, self.height = width, height
         self.entities = set(entities)
-        # this line creates a 2D array filled with the same values, in this case the Wall tile
-        # this fills self.tiles with wall tiles
-        # now we can utilize a procedural generator to populate this wall array with walkable rooms
+
+        # this code creates a 2D array filled with the same value--in this case, the Wall tile
+        # it fills self.tiles with wall tile objects
+        # once we have that, we can utilize a procedural generator to
+        # populate this wall array with walkable rooms
         self.tiles = np.full((width, height), fill_value=tile_types.wall, order="F")
 
-        self.visible = np.full(
-            (width, height), fill_value=False, order="F"
-        )  # array containing the tiles the player can currently see
+        # initialize array containing the tiles the player can currently see
         # fill them with value "false" for now
-        self.explored = np.full(
-            (width, height), fill_value=False, order="F"
-        )  # array containing the tiles the player has seen before
+        self.visible = np.full((width, height), fill_value=False, order="F")
+        # array containing the tiles the player has seen before
+        self.explored = np.full((width, height), fill_value=False, order="F")
+
+    @property
+    def actors(self) -> Iterator[Actor]:
+        """Iterate over this map's living actors."""
+        # returns all living entities on the map if they are "alive"
+        yield from (
+            entity
+            for entity in self.entities
+            if isinstance(entity, Actor) and entity.is_alive
+        )
 
     # this function iterates through all entities, and if one is found that both blocks movement,
     # AND occupies the given location_x and _y, then it returns that Entity
     def get_blocking_entity_at_location(
-        self, location_x: int, location_y: int
+        self,
+        location_x: int,
+        location_y: int,
     ) -> Optional[Entity]:
-        """Returns a blocking entity that may exist at a given location."""
+        """Returns a blocking `entity` that may exist at a given location."""
         for entity in self.entities:
             if (
                 entity.blocks_movement
@@ -49,6 +70,15 @@ class GameMap:
                 and entity.y == location_y
             ):
                 return entity
+
+        # if none of the above conditions are true, return None
+        return None
+
+    # functions like get_blocking_entity_at_location, but returns only an actor
+    def get_actor_at_location(self, x: int, y: int) -> Optional[Actor]:
+        for actor in self.actors:
+            if actor.x == x and actor.y == y:
+                return actor
 
         return None
 
@@ -70,15 +100,29 @@ class GameMap:
             choicelist=[self.tiles["light"], self.tiles["dark"]],
             default=tile_types.SHROUD,
         )
-        # np.select lets us conditionally draw the tiles we want, based on what is specified in
-        # the Condition list (condlist).
-        # it increments through the arrays we have that constitute the map/
-        # if its visible, it uses the first value in choicelist (light)
+        # np.select lets us conditionally draw the tiles we want, based on
+        # what is specified in the Condition list (condlist).
+        # it increments through the arrays that constitute the map
+        #   which includes: the map itself containing tiles
+        #   and the visible map + the explored map containing arrays of booleans
+        # if a tile is visible, it uses the first value in choicelist (light)
         # if it is not visible, but explored, use the second value (dark)
-        # otherwise, use SHROUD, which we define as default
+        # otherwise, use SHROUD, which we define as the default or fallback option
+
+        # the sorted function takes two arguments: the collection to sort, and the function to sort it
+        # by using key in sorted, we're defining a custom way to sort the self.entities:
+        #   in this case, we're using a lambda function to tell sorted to sort by value of render order
+        # since the renderorder enum defines its order from 1 (Corpse, lowest) to 3 (Actor, highest),
+        # corpses should be sent to the front of the sorted list. so that way they're
+        # rendered first and then drawn over
+        entities_sorted_for_rendering = sorted(
+            self.entities, key=lambda x: x.render_order.value
+        )
+        # lambda is like a function that's limited to one line, one that we don't need to write
+        # a formal definition for
 
         # iterate through self.entities (which refers to the Engine class's {entities})
-        for entity in self.entities:
+        for entity in entities_sorted_for_rendering:
             # only print entities in the FOV, hence the IF
             if self.visible[entity.x, entity.y]:
-                console.print(entity.x, entity.y, entity.char, fg=entity.color)
+                console.print(x=entity.x, y=entity.y, text=entity.char, fg=entity.color)

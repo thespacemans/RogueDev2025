@@ -2,113 +2,141 @@
 
 from __future__ import annotations
 
-from typing import Protocol, TYPE_CHECKING
+from typing import Optional, Tuple, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from engine import Engine
-    from entity import Entity
+    from entity import Actor, Entity
 
 
-class Action(Protocol):
-    """Generic base class for actions in the game."""
+# in hindsight, changing this file so drastically to use Protocols was a brave choice.
+# have since reverted to the tutorial baseline, so that this refactor in part 6 is
+# even a little bit achievable for my skill level and knowledge
 
-    def perform(self, engine: Engine, entity: Entity) -> None:
+
+class Action:
+    """Base class for action types."""
+
+    # its okay to call super() here even if Action has no parent because
+    # we never call a plain Action() class anywhere in the code
+    # so that super is only used by the subclasses that inherit it
+    # and it eventually refers to THIS VERY CLASS
+    # we replace the type hint with Actor because only Actors should be taking actions anyway
+    def __init__(self, entity: Actor) -> None:
+        super().__init__()
+        self.entity = entity
+
+    @property
+    def engine(self) -> Engine:
+        """Returns the `engine` object that this `action` belongs to."""
+        return self.entity.gamemap.engine
+
+    def perform(self) -> None:
         """Perform this action with the objects needed to determine its scope.
 
-        `engine` is the scope this action is being performed in.
+        `self.engine` is the scope this action is being performed in.
 
-        `entity` is the object performing the action.
+        `self.entity` is the object performing the action.
 
         This method must be overridden by Action subclasses.
         """
         raise NotImplementedError()
 
-    # each subclass of action having a perform() method is actually genius
-    # because the action that invokes it has access to its Self parameter,
-    # it will always utilize the correct perform action based on what key is pressed
-    # and so as we define more subclasses of Action, they can self-sort as they call
-    # the perform method in Engine.handle_events()
-    # very elegant!
-    # apparently this is called polymorphism
 
-
-# subclass of Action
+# recall that subclasses inherit the methods of the parent class
+# and because we didn't overwrite init, it uses the parent's init
+# and so it has access to those instance-specific attributes just by being a subclass
 class EscapeAction(Action):
-    """`Action` subclass that allows the player to exit the game."""
+    """Subclass of `Action` that allows us to close the game."""
 
-    def perform(self, engine: Engine, entity: Entity) -> None:
+    def perform(self) -> None:
         raise SystemExit()
 
 
-# subclass of Action
-# dx and dy are used to describe the direction
+class WaitAction(Action):
+    """Subclass of `Action` that is used to pass a turn."""
+
+    # represents an actor saying "I'll do nothing this turn"
+    def perform(self) -> None:
+        pass
+
+
 class ActionWithDirection(Action):
-    """`Action` subclass that defines an action's direction."""
+    """Subclass of `Action` that contains that action's desired direction in x-y space."""
 
-    def __init__(self, dx: int, dy: int):
-
-        # calls the init method of the parent class (in this case, Action)
-        # from within the subclass
-        # this ensures that any init code in the parent class runs before the
-        # subclass adds its own initialization
-        # this is vital for proper inheritance
-        super().__init__()
+    def __init__(self, entity: Actor, dx: int, dy: int):
+        super().__init__(entity)
 
         self.dx = dx
         self.dy = dy
 
-    def perform(self, engine: Engine, entity: Entity) -> None:
+    # @property lets you define a method that can be ACCESSED like an ATTRIBUTE
+    # you can access the result of that method just by using dot notation,
+    # no need to call it as a function
+    # e.g.: self.dest_xy returns a pair of x-y values in a tuple
+    # useful for creating read-only or computed attributes
+    @property
+    def dest_xy(self) -> Tuple[int, int]:
+        """Returns this `Action`'s destination."""
+        return self.entity.x + self.dx, self.entity.y + self.dy
+
+    @property
+    def blocking_entity(self) -> Optional[Entity]:
+        """Return the blocking `Entity` at this `Action`'s destination."""
+        return self.engine.game_map.get_blocking_entity_at_location(*self.dest_xy)
+        # recall that the * is the unpacking operator
+        # it lets you turn iterables into a series of positional arguments
+        # way better than using for loops or whatever else to iterate the contents of an array
+
+    @property
+    def target_actor(self) -> Optional[Actor]:
+        """Returns the actor at this `action`'s destination."""
+        return self.engine.game_map.get_actor_at_location(*self.dest_xy)
+        # this gives us an easy way to find the actor at the destination we're referring to
+
+    def perform(self) -> None:
         raise NotImplementedError()
 
 
-# subclass of ActionWithDirection
 class MeleeAction(ActionWithDirection):
-    """`ActionWithDirection` subclass that attacks a blocking entity."""
+    """Subclass of `ActionWithDirection` that attempts a melee attack on a blocking entity."""
 
-    def perform(self, engine: Engine, entity: Entity) -> None:
-        dest_x = entity.x + self.dx
-        dest_y = entity.y + self.dy
-        target = engine.game_map.get_blocking_entity_at_location(dest_x, dest_y)
+    # calculate the damage (attacker power minus defenders defense), assign a description to the attack
+    # and if it's greater than 0 we apply it
+    def perform(self) -> None:
+        target = self.target_actor
         if not target:
-            return  # No entity to attack
+            return  # No entity to attack.
 
-        print(f"You kissy the {target.name}. Mwah!")
+        damage = self.entity.fighter.power - target.fighter.defense
+
+        attack_desc = f"{self.entity.name.capitalize()} attacks {target.name}"
+        if damage > 0:
+            print(f"{attack_desc} for {damage} hit points.")
+            target.fighter.hp -= damage
+        else:
+            print(f"{attack_desc} but does no damage.")
 
 
-# subclass of ActionWithDirection
 class MovementAction(ActionWithDirection):
-    """`ActionWithDirection` subclass that facilitates movement, with conditions."""
+    def perform(self) -> None:
+        dest_x, dest_y = self.dest_xy
 
-    def perform(self, engine: Engine, entity: Entity) -> None:
-        dest_x = entity.x + self.dx
-        dest_y = entity.y + self.dy
-
-        # Check if the destination is within bounds and walkable
-        # if either is not true, do not perform the action
-        # (return breaks out of the perform method and thus aborts the move)
-        if not engine.game_map.in_bounds(dest_x, dest_y):
+        if not self.engine.game_map.in_bounds(dest_x, dest_y):
             return  # Destination is out of bounds.
-        if not engine.game_map.tiles["walkable"][dest_x, dest_y]:
+        if not self.engine.game_map.tiles["walkable"][dest_x, dest_y]:
             return  # Destination is blocked by a tile.
-        if engine.game_map.get_blocking_entity_at_location(dest_x, dest_y):
+        if self.engine.game_map.get_blocking_entity_at_location(dest_x, dest_y):
             return  # Destination is blocked by an entity.
 
-        entity.move(self.dx, self.dy)
+        # if none of the above breaks us out of the function, finally move the entity
+        self.entity.move(self.dx, self.dy)
 
 
-# subclass of ActionWithDirection
 class BumpAction(ActionWithDirection):
-    """`ActionWithDirection` subclass that routes a directed action to its appropriate method."""
-
-    # this class also inherits from ActionWithDirection, but its perform method doesn't
-    # do anything except decide between which class (between MeleeAction and MovementAction)
-    # that must be utilized
-    # those classes actually do the work. this one just chooses the appropriate one to call
-    def perform(self, engine: Engine, entity: Entity) -> None:
-        dest_x = entity.x + self.dx
-        dest_y = entity.y + self.dy
-        if engine.game_map.get_blocking_entity_at_location(dest_x, dest_y):
-            return MeleeAction(self.dx, self.dy).perform(engine, entity)
+    def perform(self) -> None:
+        if self.target_actor:
+            return MeleeAction(self.entity, self.dx, self.dy).perform()
 
         else:
-            return MovementAction(self.dx, self.dy).perform(engine, entity)
+            return MovementAction(self.entity, self.dx, self.dy).perform()
