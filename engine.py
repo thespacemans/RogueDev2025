@@ -4,16 +4,19 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from tcod.context import Context
 from tcod.console import Console
 from tcod.map import compute_fov
 
-from input_handlers import DefaultControlHandler
+from input_handlers import MainGameEventHandler
+from message_log import MessageLog
+from render_functions import render_bar, render_names_at_mouse_location
 
 if TYPE_CHECKING:
     from input_handlers import EventHandler
     from entity import Actor
     from game_map import GameMap
+
+    # from tcod.context import Context
 
 
 class Engine:
@@ -28,7 +31,9 @@ class Engine:
     # and it is utilized and modified on each game loop iteration
     # for the default state we use the default control handler
     def __init__(self, player: Actor):
-        self.event_handler: EventHandler = DefaultControlHandler(self)
+        self.event_handler: EventHandler = MainGameEventHandler(self)
+        self.message_log = MessageLog()
+        self.mouse_location = (int(0), int(0))
         self.player = player
 
     def handle_enemy_turns(self) -> None:
@@ -62,19 +67,19 @@ class Engine:
     #   how about that lmao
     # the location on that array is defined by the player's location and the radius
 
-    def render(self, console: Console, context: Context) -> None:
+    def render(self, console: Console) -> None:
         """Draws the game map, entities, and more to the game window."""
         self.game_map.render(console)
 
-        console.print(
-            x=1,
-            y=47,
-            text=f"HP: {self.player.fighter.hp}/{self.player.fighter.max_hp}",
+        self.message_log.render(console=console, x=21, y=45, width=40, height=5)
+
+        # renders health bar
+        render_bar(
+            console=console,
+            current_value=self.player.fighter.hp,
+            maximum_value=self.player.fighter.max_hp,
+            total_width=20,
         )
 
-        # this part actually outputs the various arrays we've toodled with
-        # to the console window
-        context.present(console)
-        # and this just empties the console to be filled with array stuff later
-        # this seems like frame generation and disposal, just for a text-based display
-        console.clear()
+        # renders entity names at the mouse's location
+        render_names_at_mouse_location(console=console, x=21, y=44, engine=self)
