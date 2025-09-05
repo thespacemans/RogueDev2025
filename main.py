@@ -5,6 +5,7 @@
 import copy
 import tcod
 
+import color
 from engine import Engine
 import entity_factories
 from procgen import generate_dungeon
@@ -21,7 +22,8 @@ def main() -> None:
     screen_height = 50
 
     map_width = 80
-    map_height = 45
+    # make map height 43 instead of 45 to give room to the message log
+    map_height = 43
 
     room_max_size = 10
     room_min_size = 6
@@ -57,6 +59,10 @@ def main() -> None:
     )
     engine.update_fov()
 
+    engine.message_log.add_message(
+        "Hail and well-met, dork. Here dungeon.", color.welcome_text
+    )
+
     # creates the window, given width and height and a window title
     with tcod.context.new(
         columns=screen_width,
@@ -73,13 +79,15 @@ def main() -> None:
 
         # starts the game loop
         while True:
-            # this renders the contents of Engine
-            #   e.g. entities, map, visibility status, etc
-            # to the game windows
-            engine.render(console=root_console, context=context)
+            # console clear is now back in main, as well as context_present
+            root_console.clear()
+            # on_render tells the engine to render
+            engine.event_handler.on_render(console=root_console)
+            context.present(root_console)
 
-            # and this handles events as they arise
-            engine.event_handler.handle_events()
+            # now we pass the context to handle_events now, because
+            # we need to call an extra method on it to capture mouse input
+            engine.event_handler.handle_events(context)
 
 
 # boilerplate code to prevent main from being run unless we specifically invoke it from main
