@@ -1,4 +1,4 @@
+input_handlers is still scuffed. But it works, kind of. 
+
 Maybe kissy as an action option in the future. 1/10000 chance it turns the enemy into a friend.
 If you kissy a weapon maybe it becomes something else. Maybe the weapons have sapience? This is scifi after all.
-
-Add color paletting functionality! Perhaps you could save and load it from a file in the local directory. 
